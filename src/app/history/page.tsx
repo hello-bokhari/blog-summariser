@@ -8,8 +8,8 @@ import { supabase } from '@/lib/supabase'
 type BlogSummary = {
   id: string
   url: string
-  summary: string
-  translated: string
+  summary_en: string
+  summary_ur: string
   created_at: string
 }
 
@@ -62,9 +62,11 @@ export default function HistoryPage() {
                 <CardTitle className="text-blue-700 break-all">{item.url}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                <p><strong>📘 English:</strong> {item.summary}</p>
-                <p><strong>🌐 Urdu:</strong> {item.translated}</p>
-                <p className="text-sm text-gray-500">{new Date(item.created_at).toLocaleString()}</p>
+                <p><strong>📘 English:</strong> {item.summary_en}</p>
+                <p><strong>🌐 Urdu:</strong> {item.summary_ur}</p>
+                <p className="text-sm text-gray-500">
+                  {new Date(item.created_at).toLocaleString()}
+                </p>
               </CardContent>
             </Card>
           ))}
