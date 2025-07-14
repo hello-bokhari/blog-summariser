@@ -1,5 +1,6 @@
 import mongoose from 'mongoose'
-import { Blog } from '@/models/Blog'
+import Blog from '@/models/Blog'
+
 
 export async function saveToMongo({ url, content }: { url: string; content: string }) {
   await mongoose.connect(process.env.MONGODB_URI!)
