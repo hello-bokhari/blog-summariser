@@ -14,7 +14,7 @@ export default function HomePage() {
   const [fullText, setFullText] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [status, setStatus] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState('full') // controls default tab
+  const [activeTab, setActiveTab] = useState('full')
 
   const handleSummarise = async () => {
     if (!inputUrl.trim()) return
@@ -24,7 +24,7 @@ export default function HomePage() {
     setSummary('')
     setEnglishSummary('')
     setFullText('')
-    setActiveTab('full') // show full text after scraping
+    setActiveTab('full')
 
     try {
       // Step 1: Scrape
@@ -45,7 +45,7 @@ export default function HomePage() {
       setFullText(scraped.fullText)
       setStatus('⚙️ Sending text to Gemini for summarisation...')
 
-      // Step 2: Generate summaries using Gemini
+      // Step 2: Summarise
       const geminiRes = await fetch('/api/gemini-summary', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -64,20 +64,23 @@ export default function HomePage() {
       }
 
       const summaries = await geminiRes.json()
-      setEnglishSummary(summaries.summary || summaries.summary_en || '')
-      setSummary(summaries.urduSummary || summaries.translated || '')
-      setStatus('💾 Storing summary in the database...')
-      setActiveTab('english') // automatically show English summary
+      const english = summaries.summary || summaries.summary_en || ''
+      const urdu = summaries.urduSummary || summaries.translated || ''
 
-      // Step 3: Save to DB
+      setEnglishSummary(english)
+      setSummary(urdu)
+      setActiveTab('english')
+      setStatus('💾 Storing summary in the database...')
+
+      // Step 3: Store to DB
       const saveRes = await fetch('/api/summarise', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           url: inputUrl,
           text: scraped.fullText,
-          summary: summaries.summary,
-          urduSummary: summaries.urduSummary,
+          summary: english,
+          urduSummary: urdu,
         }),
       })
 
@@ -85,10 +88,21 @@ export default function HomePage() {
         const dbError = await saveRes.text()
         setError(`⚠️ Summary shown, but failed to store in database.\n\n${dbError}`)
         setStatus(null)
-        return
+      } else {
+        setStatus('✅ Summary complete and saved!')
       }
 
-      setStatus('✅ Summary complete and saved!')
+      // Step 4: Store to sessionStorage (local-only history)
+      const newSummary = {
+        url: inputUrl,
+        summary: english,
+        translated: urdu,
+        created_at: new Date().toISOString(),
+      }
+
+      const sessionHistory = JSON.parse(sessionStorage.getItem('sessionHistory') || '[]')
+      sessionHistory.unshift(newSummary)
+      sessionStorage.setItem('sessionHistory', JSON.stringify(sessionHistory))
     } catch (err: any) {
       console.error('Unexpected Error:', err)
       setError(`❌ Unexpected error: ${err?.message}`)
@@ -114,7 +128,6 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Tabs always visible */}
       <div className="mt-10 pb-40">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList>
@@ -149,7 +162,6 @@ export default function HomePage() {
         </Tabs>
       </div>
 
-      {/* Floating input bar */}
       <div className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-300 shadow-md p-4 flex items-center justify-center gap-2 z-50">
         <Input
           placeholder="Enter blog URL"
